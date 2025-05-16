@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -21,38 +21,34 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
-    minlength: 6
+    required: true
   },
   cnic: {
     type: String,
     required: true,
     unique: true,
-    validate: {
-      validator: function(v) {
-        return /^\d{13}$/.test(v);
-      },
-      message: 'CNIC must be exactly 13 digits'
-    }
+    trim: true
   },
   phoneNumber: {
     type: String,
+    required: true,
     trim: true
   },
   dateOfBirth: {
-    type: Date
-  },
-  expertise: {
-    type: [String],
+    type: Date,
     required: true
   },
+  expertise: [{
+    type: String,
+    trim: true
+  }],
   profilePicture: {
     type: String,
     default: ''
   },
   location: {
-    country: String,
-    city: String
+    city: String,
+    country: String
   },
   languages: [{
     type: String,
@@ -60,28 +56,69 @@ const userSchema = new mongoose.Schema({
   }],
   qualification: {
     type: String,
-    enum: ['Matric', 'Intermediate', 'Undergraduate', 'Graduate', 'Masters', 'PHD', 'Other'],
-    required: true
+    trim: true
   },
   role: {
     type: String,
-    enum: ['admin', 'instructor', 'maintenance_office'],
-    required: true
+    enum: ['user', 'admin', 'maintenance_office'],
+    default: 'user'
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  // New fields for settings
+  twoFactorSecret: {
+    type: String,
+    select: false // Don't include in queries by default
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  notifications: {
+    email: {
+      type: Boolean,
+      default: true
+    },
+    system: {
+      type: Boolean,
+      default: true
+    }
+  },
+  preferences: {
+    darkMode: {
+      type: Boolean,
+      default: false
+    },
+    language: {
+      type: String,
+      default: 'en'
+    }
+  },
+  lastLogin: {
+    type: Date
   },
   createdAt: {
     type: Date,
     default: Date.now
   },
-  isVerified: {
-    type: Boolean,
-    default: false
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
+// Update the updatedAt timestamp before saving
+userSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -92,8 +129,20 @@ userSchema.pre('save', async function(next) {
 });
 
 // Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Method to get public profile (exclude sensitive data)
+userSchema.methods.getPublicProfile = function () {
+  const userObject = this.toObject();
+  delete userObject.password;
+  delete userObject.twoFactorSecret;
+  return userObject;
 };
 
 const User = mongoose.model('User', userSchema);

@@ -3,7 +3,6 @@ import Students from './pages/Students';
 import Course from './pages/Course';
 import Attendance from './pages/Attendance';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Unauthorized from './pages/Unauthorized';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
@@ -12,6 +11,9 @@ import AllCourses from './pages/AllCourses';
 import CourseSessions from './pages/CourseSessions';
 import AttendanceMark from './pages/AttendanceMark';
 import AttendanceView from './pages/AttendanceView';
+import AdminRegister from './pages/AdminRegister';
+import Profile from './pages/Profile';
+import UpdateProfile from './pages/UpdateProfile';
 
 // Define routes with their configuration
 const routes = [
@@ -21,77 +23,82 @@ const routes = [
     component: Login,
     layout: false,
     exact: true,
-  },
-  {
-    path: '/register',
-    component: Register,
-    layout: false,
-    exact: true,
+    public: true,
   },
   {
     path: '/unauthorized',
     component: Unauthorized,
     layout: false,
     exact: true,
+    public: true,
   },
-  
+
   // Protected routes that use the sidebar layout
   {
     path: '/',
     component: Home,
     layout: true,
     exact: true,
+    protected: true,
   },
   {
     path: '/students',
     component: Students,
     layout: true,
     exact: true,
+    protected: true,
   },
   {
     path: '/courses',
     component: Course,
     layout: true,
     exact: true,
-    allowedRoles: ['maintenance_office'],
+    protected: true,
+    allowedRoles: ['maintenance_office', "admin"],
   },
   {
     path: '/courses/active',
     component: ActiveCourses,
     layout: true,
     exact: true,
+    protected: true,
   },
   {
     path: '/courses/all',
     component: AllCourses,
     layout: true,
     exact: true,
+    protected: true,
   },
   {
     path: '/courses/sessions',
     component: CourseSessions,
     layout: true,
     exact: true,
+    protected: true,
   },
   {
     path: '/attendance',
     component: Attendance,
     layout: true,
     exact: true,
-    allowedRoles: ['maintenance_office'],
+    protected: true,
+    allowedRoles: ['maintenance_office', 'teacher', 'admin'],
   },
   {
     path: '/attendance/mark',
     component: AttendanceMark,
     layout: true,
     exact: true,
-    allowedRoles: ['maintenance_office', 'teacher'],
+    protected: true,
+    allowedRoles: ['maintenance_office', 'teacher', 'admin'],
   },
   {
     path: '/attendance/view',
     component: AttendanceView,
     layout: true,
     exact: true,
+    protected: true,
     allowedRoles: ['maintenance_office', 'teacher'],
   },
   {
@@ -99,12 +106,36 @@ const routes = [
     component: Reports,
     layout: true,
     exact: true,
+    protected: true,
   },
   {
     path: '/settings',
     component: Settings,
     layout: true,
     exact: true,
+    protected: true,
+  },
+  {
+    path: '/profile',
+    component: Profile,
+    layout: true,
+    exact: true,
+    protected: true,
+  },
+  {
+    path: '/profile/update',
+    component: UpdateProfile,
+    layout: true,
+    exact: true,
+    protected: true,
+  },
+  {
+    path: '/register',
+    component: AdminRegister,
+    layout: true,
+    // exact: true,
+    // protected: true,
+    // allowedRoles: ['admin'],
   },
   // Add additional routes as needed
 ];

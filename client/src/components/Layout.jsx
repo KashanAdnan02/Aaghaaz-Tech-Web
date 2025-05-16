@@ -9,13 +9,13 @@ const Layout = ({ children }) => {
     const handleResize = () => {
       setSidebarOpen(window.innerWidth >= 1024);
     };
-    
+
     // Set initial state
     handleResize();
-    
+
     // Add event listener
     window.addEventListener('resize', handleResize);
-    
+
     // Clean up
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -27,13 +27,12 @@ const Layout = ({ children }) => {
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-      
-      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-        sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
-      }`}>
+
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
+        }`}>
         {/* Header bar for mobile view */}
         <header className="lg:hidden h-14 bg-white shadow-sm flex items-center px-4">
-          <button 
+          <button
             onClick={toggleSidebar}
             className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
           >
@@ -43,7 +42,7 @@ const Layout = ({ children }) => {
           </button>
           <h1 className="ml-4 text-lg font-semibold text-gray-800">Student Management System</h1>
         </header>
-        
+
         <div className="flex-1 overflow-auto">
           <main className="p-4 md:p-6">
             {children}

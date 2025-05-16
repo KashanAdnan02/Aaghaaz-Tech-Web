@@ -673,7 +673,7 @@ const Students = () => {
                         <FaDownload /> Export CSV
                     </button>
                     <button
-                        onClick={() => navigate('/students/add')}
+                        onClick={() => setShowForm(true)}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                     >
                         Add Student

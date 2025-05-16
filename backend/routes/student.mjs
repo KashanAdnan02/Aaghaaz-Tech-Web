@@ -321,7 +321,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Create a new student (Maintenance Office only)
-router.post('/', maintenanceOfficeOnly, async (req, res) => {
+router.post('/', adminOrMaintenance, async (req, res) => {
   try {
     const {
       firstName,
@@ -506,7 +506,7 @@ router.get('/course/:courseId', async (req, res) => {
 });
 
 // Update a student (Maintenance Office only)
-router.put('/:id', maintenanceOfficeOnly, upload.single('profilePicture'), async (req, res) => {
+router.put('/:id', adminOrMaintenance, upload.single('profilePicture'), async (req, res) => {
   try {
     const {
       firstName,
@@ -616,7 +616,7 @@ router.put('/:id', maintenanceOfficeOnly, upload.single('profilePicture'), async
 });
 
 // Delete a student (Maintenance Office only)
-router.delete('/:id', maintenanceOfficeOnly, async (req, res) => {
+router.delete('/:id', adminOrMaintenance, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {
