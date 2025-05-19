@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/axios';
+import { toast } from 'react-toastify';
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -13,6 +14,7 @@ const Course = () => {
     duration: '',
     price: '',
     modeOfDelivery: '',
+    startingDate: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -26,7 +28,7 @@ const Course = () => {
       const response = await api.get('/api/courses');
       setCourses(response.data);
     } catch (error) {
-      setError('Failed to fetch courses');
+      toast.error('Failed to fetch courses', { className: 'font-inter' });
     }
   };
 
@@ -57,7 +59,7 @@ const Course = () => {
     setSuccess('');
     try {
       await api.post('/api/courses', formData);
-      setSuccess('Course created successfully');
+      toast.success('Course created successfully', { className: 'font-inter' });
       setFormData({
         name: '',
         description: '',
@@ -66,38 +68,27 @@ const Course = () => {
         duration: '',
         price: '',
         modeOfDelivery: '',
+        startingDate: '',
       });
       fetchCourses();
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to create course');
+      toast.error(error.response?.data?.message || 'Failed to create course', { className: 'font-inter' });
     }
   };
 
   const handleDelete = async (courseId) => {
     try {
-      await api.delete(`/courses/${courseId}`);
-      setSuccess('Course deleted successfully');
+      await api.delete(`/api/courses/${courseId}`);
+      toast.success('Course deleted successfully', { className: 'font-inter' });
       fetchCourses();
     } catch (error) {
-      setError('Failed to delete course');
+      toast.error('Failed to delete course', { className: 'font-inter' });
     }
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Course Management</h1>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-          {success}
-        </div>
-      )}
 
       <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-8">
         <h2 className="text-xl font-bold mb-4">Add New Course</h2>
@@ -225,6 +216,20 @@ const Course = () => {
               <option value="Onsite">Onsite</option>
               <option value="Hybrid">Hybrid</option>
             </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="startingDate">
+              Starting Date
+            </label>
+            <input
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              id="startingDate"
+              name="startingDate"
+              type="date"
+              required
+              value={formData.startingDate}
+              onChange={handleChange}
+            />
           </div>
           <button
             type="submit"

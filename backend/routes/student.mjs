@@ -296,7 +296,7 @@ router.post('/login', async (req, res) => {
         studentId: student._id,
         role: 'student'
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET || '121212',
       { expiresIn: '24h' }
     );
 

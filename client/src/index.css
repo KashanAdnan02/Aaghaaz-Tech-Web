@@ -5,5 +5,30 @@
 
 
 * {
-    font-family: "Inter", sans-serif;
+  font-family: "Inter", sans-serif;
+}
+
+input,
+select,
+textarea {
+  padding: 0.45rem 1rem !important;
+  /* More vertical and horizontal padding */
+  outline: none !important;
+  box-shadow: none !important;
+  border: 1.5px solid #d1d5db !important;
+  /* Tailwind's gray-300 */
+  border-radius: 0.375rem !important;
+  /* Tailwind's rounded-md */
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #3b82f633;
+  /* subtle blue focus ring, optional */
+}
+
+.font-inter {
+  font-family: "Inter", sans-serif !important;
 }

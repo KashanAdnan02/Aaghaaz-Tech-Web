@@ -8,7 +8,7 @@ export const isAuthenticated = async (req, res, next) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
     req.user = {
       _id: decoded.userId || decoded.studentId, // Handle both user and student IDs
       role: decoded.role,
@@ -28,7 +28,7 @@ export const isTeacher = async (req, res, next) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
     
     if (decoded.role !== 'teacher') {
       return res.status(403).json({ message: 'Teacher access required' });
@@ -53,7 +53,7 @@ export const isAdmin = async (req, res, next) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
     
     if (decoded.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });

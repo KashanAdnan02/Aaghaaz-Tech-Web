@@ -13,7 +13,8 @@ router.post('/', maintenanceOfficeOnly, async (req, res) => {
       timing,
       duration,
       price,
-      modeOfDelivery
+      modeOfDelivery,
+      startingDate
     } = req.body;
 
     const course = new Course({
@@ -23,6 +24,7 @@ router.post('/', maintenanceOfficeOnly, async (req, res) => {
       duration,
       price,
       modeOfDelivery,
+      startingDate,
       createdBy: req.user.userId
     });
 
@@ -39,7 +41,21 @@ router.post('/', maintenanceOfficeOnly, async (req, res) => {
     });
   }
 });
-
+router.delete('/:id', maintenanceOfficeOnly, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    await course.deleteOne();
+    res.json({ message: 'Course permanently deleted' });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error permanently deleting course',
+      error: error.message
+    });
+  }
+});
 // Get course counts for dashboard
 router.get('/count', async (req, res) => {
   try {
@@ -113,7 +129,8 @@ router.put('/:id', maintenanceOfficeOnly, async (req, res) => {
       duration,
       price,
       modeOfDelivery,
-      isActive
+      isActive,
+      startingDate
     } = req.body;
 
     const course = await Course.findById(req.params.id);
@@ -130,6 +147,7 @@ router.put('/:id', maintenanceOfficeOnly, async (req, res) => {
     if (price) course.price = price;
     if (modeOfDelivery) course.modeOfDelivery = modeOfDelivery;
     if (typeof isActive === 'boolean') course.isActive = isActive;
+    if (startingDate) course.startingDate = startingDate;
 
     await course.save();
 
@@ -166,5 +184,8 @@ router.delete('/:id', maintenanceOfficeOnly, async (req, res) => {
     });
   }
 });
+
+// Permanently delete a course (Admin only)
+
 
 export default router; 

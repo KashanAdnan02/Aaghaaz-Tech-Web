@@ -68,7 +68,7 @@ router.post('/register', async (req, res) => {
         role: user.role,
         email: user.email
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET || '121212',
       { expiresIn: '24h' }
     );
 
@@ -314,7 +314,7 @@ router.put('/change-password', async (req, res) => {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
     const userId = decoded.userId;
 
     const { currentPassword, newPassword } = req.body;
@@ -464,7 +464,7 @@ router.delete('/account', async (req, res) => {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
     const userId = decoded.userId;
 
     const { password } = req.body;

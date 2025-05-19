@@ -68,7 +68,11 @@ const courseSchema = new mongoose.Schema({
   students: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Student'
-  }]
+  }],
+  startingDate: {
+    type: Date,
+    required: true
+  }
 });
 
 // Update the updatedAt timestamp before saving

@@ -26,6 +26,14 @@ const routes = [
     public: true,
   },
   {
+    path: '/register',
+    component: AdminRegister,
+    layout: true,
+    // exact: true,
+    // protected: true,
+    // allowedRoles: ['admin'],
+  },
+  {
     path: '/unauthorized',
     component: Unauthorized,
     layout: false,
@@ -129,14 +137,7 @@ const routes = [
     exact: true,
     protected: true,
   },
-  {
-    path: '/register',
-    component: AdminRegister,
-    layout: true,
-    // exact: true,
-    // protected: true,
-    // allowedRoles: ['admin'],
-  },
+
   // Add additional routes as needed
 ];
 

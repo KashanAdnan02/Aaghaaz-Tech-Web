@@ -4,16 +4,19 @@ export const checkRole = (roles) => {
   return (req, res, next) => {
     try {
       const token = req.header('Authorization')?.replace('Bearer ', '');
-      
+
+      console.log(token);
       if (!token) {
+        console.log(token);
+
         return res.status(401).json({ message: 'Authentication required' });
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
+
       if (!roles.includes(decoded.role)) {
-        return res.status(403).json({ 
-          message: `Access denied. Required role: ${roles.join(' or ')}` 
+        return res.status(403).json({
+          message: `Access denied. Required role: ${roles.join(' or ')}`
         });
       }
 

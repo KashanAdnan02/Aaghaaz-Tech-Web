@@ -137,13 +137,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                                 <li key={item.name}>
                                     {item.children ? (
                                         <div className="space-y-1">
-                                            <div className={`transition-colors duration-150 rounded-md flex items-center ${isOpen ? "px-4" : "justify-center"} ${location.pathname === item.path
+                                            <div className={`justify-between w-full transition-colors duration-150 rounded-md flex items-center ${isOpen ? "px-4" : "justify-between"} ${location.pathname === item.path
                                                 ? 'text-blue-600 bg-blue-50 font-semibold'
                                                 : 'text-gray-700 hover:bg-gray-100'
                                                 }`}>
                                                 <Link
                                                     to={item.path}
-                                                    className={`flex items-center justify-center py-3 text-sm font-medium  `}
+                                                    className={`flex items-center  py-3 text-sm font-medium  `}
                                                     onClick={() => {
                                                         if (window.innerWidth < 1024) {
                                                             toggleSidebar();
@@ -166,7 +166,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                                                     onClick={() => toggleExpand(item.name)}
                                                     className={`${isOpen ? '' : "hidden"} p-2 transition-transform duration-200 ${expandedItems[item.name] ? 'rotate-180' : ''}`}
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className={`${location.pathname.startsWith(item.path) ? 'text-blue-600' : 'text-gray-500'} h-4 w-4`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                     </svg>
                                                 </button>
