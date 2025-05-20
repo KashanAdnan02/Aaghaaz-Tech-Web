@@ -145,6 +145,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                                                     to={item.path}
                                                     className={`flex items-center  py-3 text-sm font-medium  `}
                                                     onClick={() => {
+                                                        toggleExpand(item.name)
                                                         if (window.innerWidth < 1024) {
                                                             toggleSidebar();
                                                         }
@@ -163,8 +164,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                                                     </span>
                                                 </Link>
                                                 <button
-                                                    onClick={() => toggleExpand(item.name)}
+
                                                     className={`${isOpen ? '' : "hidden"} p-2 transition-transform duration-200 ${expandedItems[item.name] ? 'rotate-180' : ''}`}
+                                                    onClick={() => xtoggleExpand(item.name)}
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" className={`${location.pathname.startsWith(item.path) ? 'text-blue-600' : 'text-gray-500'} h-4 w-4`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

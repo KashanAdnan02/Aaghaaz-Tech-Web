@@ -48,6 +48,18 @@ const courseSchema = new mongoose.Schema({
     enum: ['Online', 'Offline', 'Hybrid', 'Onsite'],
     required: true
   },
+  outline: {
+    type: String,
+    default: ''
+  },
+  requirements: {
+    type: String,
+    default: ''
+  },
+  poster: {
+    type: String,
+    default: ''
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

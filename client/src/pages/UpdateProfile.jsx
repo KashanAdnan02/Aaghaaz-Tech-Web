@@ -10,17 +10,23 @@ const UpdateProfile = () => {
     lastName: '',
     email: '',
     phoneNumber: '',
+    cnic: '',
     location: { city: '', country: '' },
     expertise: '',
     languages: '',
-    qualification: ''
+    qualification: '',
+    profilePicture: null
   });
+  const [previewUrl, setPreviewUrl] = useState('');
 
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
         const response = await api.get('/api/auth/profile');
         setFormData(response.data.user);
+        if (response.data.user.profilePicture) {
+          setPreviewUrl(response.data.user.profilePicture);
+        }
       } catch (error) {
         toast.error('Failed to fetch user details');
       }
@@ -31,16 +37,53 @@ const UpdateProfile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setFormData({
+        ...formData,
+        [parent]: {
+          ...formData[parent],
+          [child]: value
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({
+        ...formData,
+        profilePicture: file
+      });
+      setPreviewUrl(URL.createObjectURL(file));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put('/api/auth/profile', formData);
+      const formDataToSend = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (key === 'profilePicture' && formData[key]) {
+          formDataToSend.append(key, formData[key]);
+        } else if (key === 'location') {
+          formDataToSend.append(key, JSON.stringify(formData[key]));
+        } else {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+
+      await api.put('/api/auth/profile', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       toast.success('Profile updated successfully');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -51,6 +94,23 @@ const UpdateProfile = () => {
     <div className="max-w-2xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Update Profile</h1>
       <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6">
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Profile Picture</label>
+          <input
+            type="file"
+            name="profilePicture"
+            onChange={handleFileChange}
+            accept="image/*"
+            className="mt-1 block w-full"
+          />
+          {previewUrl && (
+            <img
+              src={previewUrl}
+              alt="Profile preview"
+              className="mt-2 w-24 h-24 object-cover rounded-full"
+            />
+          )}
+        </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700">First Name</label>
           <input
@@ -77,6 +137,16 @@ const UpdateProfile = () => {
             type="email"
             name="email"
             value={formData.email}
+            onChange={handleChange}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">CNIC</label>
+          <input
+            type="text"
+            name="cnic"
+            value={formData.cnic}
             onChange={handleChange}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />

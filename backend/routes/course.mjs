@@ -14,7 +14,10 @@ router.post('/', maintenanceOfficeOnly, async (req, res) => {
       duration,
       price,
       modeOfDelivery,
-      startingDate
+      startingDate,
+      outline,
+      requirements,
+      poster
     } = req.body;
 
     const course = new Course({
@@ -25,6 +28,9 @@ router.post('/', maintenanceOfficeOnly, async (req, res) => {
       price,
       modeOfDelivery,
       startingDate,
+      outline,
+      requirements,
+      poster,
       createdBy: req.user.userId
     });
 
@@ -88,10 +94,28 @@ router.get('/count', async (req, res) => {
 // Get all courses (Public)
 router.get('/', async (req, res) => {
   try {
-    const courses = await Course.find({ isActive: true })
-      .populate('createdBy', 'firstName lastName email');
+    // Pagination support
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-    res.json(courses);
+    // Only select fields needed for the table
+    const courses = await Course.find({ isActive: true })
+      .select('name description days timing duration price modeOfDelivery startingDate outline requirements poster')
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await Course.countDocuments({ isActive: true });
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      courses,
+      totalPages,
+      currentPage: page,
+      totalRecords: total,
+      limit
+    });
   } catch (error) {
     res.status(500).json({
       message: 'Error fetching courses',
@@ -130,7 +154,10 @@ router.put('/:id', maintenanceOfficeOnly, async (req, res) => {
       price,
       modeOfDelivery,
       isActive,
-      startingDate
+      startingDate,
+      outline,
+      requirements,
+      poster
     } = req.body;
 
     const course = await Course.findById(req.params.id);
@@ -148,6 +175,9 @@ router.put('/:id', maintenanceOfficeOnly, async (req, res) => {
     if (modeOfDelivery) course.modeOfDelivery = modeOfDelivery;
     if (typeof isActive === 'boolean') course.isActive = isActive;
     if (startingDate) course.startingDate = startingDate;
+    if (outline !== undefined) course.outline = outline;
+    if (requirements !== undefined) course.requirements = requirements;
+    if (poster !== undefined) course.poster = poster;
 
     await course.save();
 

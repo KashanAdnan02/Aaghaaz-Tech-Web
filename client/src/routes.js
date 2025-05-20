@@ -14,6 +14,7 @@ import AttendanceView from './pages/AttendanceView';
 import AdminRegister from './pages/AdminRegister';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
+// import Register from './pages/Register';
 
 // Define routes with their configuration
 const routes = [
@@ -28,8 +29,9 @@ const routes = [
   {
     path: '/register',
     component: AdminRegister,
-    layout: true,
-    // exact: true,
+    public: true,
+    // layout: true,
+    exact: true,
     // protected: true,
     // allowedRoles: ['admin'],
   },

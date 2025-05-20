@@ -4,11 +4,54 @@ import User from '../models/User.mjs';
 import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
+import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
 
 const router = express.Router();
 
+// Configure multer for memory storage
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Helper function to upload image to Cloudinary
+const uploadToCloudinary = async (file) => {
+  try {
+    if (!file || !file.buffer) {
+      throw new Error('No file provided or invalid file format');
+    }
+
+    // Convert buffer to base64
+    const b64 = Buffer.from(file.buffer).toString('base64');
+    const dataURI = `data:${file.mimetype};base64,${b64}`;
+
+    // Upload to Cloudinary with improved timeout and options
+    const result = await cloudinary.uploader.upload(dataURI, {
+      folder: 'user_profiles',
+      resource_type: 'auto',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif'],
+      transformation: [
+        { width: 500, height: 500, crop: 'fill' },
+        { quality: 'auto:good', fetch_format: 'auto' }
+      ],
+      timeout: 120000, // 2 minute timeout
+      use_filename: true,
+      unique_filename: true,
+      overwrite: true,
+      async: false
+    });
+
+    if (!result || !result.secure_url) {
+      throw new Error('Failed to get secure URL from Cloudinary');
+    }
+
+    return result.secure_url;
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    throw new Error(`Error uploading image to Cloudinary: ${error.message}`);
+  }
+};
+
 // Register new user
-router.post('/register', async (req, res) => {
+router.post('/register', upload.single('profilePicture'), async (req, res) => {
   try {
     const {
       firstName,
@@ -19,12 +62,16 @@ router.post('/register', async (req, res) => {
       phoneNumber,
       dateOfBirth,
       expertise,
-      profilePicture,
       location,
       languages,
       qualification,
       role
     } = req.body;
+
+    // Parse arrays from JSON strings
+    const parsedExpertise = typeof expertise === 'string' ? JSON.parse(expertise) : expertise;
+    const parsedLanguages = typeof languages === 'string' ? JSON.parse(languages) : languages;
+    const parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -42,6 +89,12 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // Upload profile picture if provided
+    let profilePictureUrl = '';
+    if (req.file) {
+      profilePictureUrl = await uploadToCloudinary(req.file);
+    }
+
     // Create new user
     const user = new User({
       firstName,
@@ -51,10 +104,10 @@ router.post('/register', async (req, res) => {
       cnic,
       phoneNumber,
       dateOfBirth,
-      expertise,
-      profilePicture,
-      location,
-      languages,
+      expertise: parsedExpertise,
+      profilePicture: profilePictureUrl,
+      location: parsedLocation,
+      languages: parsedLanguages,
       qualification,
       role: role || 'user'
     });
@@ -268,7 +321,7 @@ router.get('/profile', async (req, res) => {
 });
 
 // Update user profile
-router.put('/profile', async (req, res) => {
+router.put('/profile', upload.single('profilePicture'), async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -278,11 +331,17 @@ router.put('/profile', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
     const userId = decoded.userId;
 
-    const { firstName, lastName, email, phoneNumber, location, languages, qualification, expertise } = req.body;
+    const { firstName, lastName, email, phoneNumber, location, languages, qualification, expertise, cnic } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Upload new profile picture if provided
+    if (req.file) {
+      const profilePictureUrl = await uploadToCloudinary(req.file);
+      user.profilePicture = profilePictureUrl;
     }
 
     // Update user fields
@@ -294,6 +353,7 @@ router.put('/profile', async (req, res) => {
     user.languages = languages || user.languages;
     user.qualification = qualification || user.qualification;
     user.expertise = expertise || user.expertise;
+    user.cnic = cnic || user.cnic;
 
     await user.save();
 

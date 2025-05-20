@@ -13,7 +13,7 @@ const AdminRegister = () => {
     phoneNumber: '',
     dateOfBirth: '',
     expertise: [],
-    profilePicture: '',
+    profilePicture: null,
     location: {
       country: '',
       city: ''
@@ -26,6 +26,9 @@ const AdminRegister = () => {
   const [expertiseInput, setExpertiseInput] = useState('');
   const [languageInput, setLanguageInput] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [touched, setTouched] = useState({});
+  const [previewUrl, setPreviewUrl] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -45,6 +48,35 @@ const AdminRegister = () => {
         [name]: value
       }));
     }
+    // Mark field as touched
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image size must be less than 2MB');
+        e.target.value = '';
+        return;
+      }
+      setFormData(prev => ({
+        ...prev,
+        profilePicture: file
+      }));
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
   };
 
   const handleAddExpertise = () => {
@@ -81,154 +113,214 @@ const AdminRegister = () => {
     }));
   };
 
+  const handleKeyPress = (e, callback) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      callback();
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     try {
-      await api.post('/api/auth/register', formData);
-      toast.success('Registration successful!');
-      // Reset form after successful registration
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        password: '',
-        cnic: '',
-        phoneNumber: '',
-        dateOfBirth: '',
-        expertise: [],
-        profilePicture: '',
-        location: {
-          country: '',
-          city: ''
-        },
-        languages: [],
-        qualification: '',
-        role: 'instructor'
+      const formDataToSend = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (key === 'profilePicture' && formData[key]) {
+          formDataToSend.append(key, formData[key]);
+        } else if (key === 'location') {
+          formDataToSend.append(key, JSON.stringify(formData[key]));
+        } else if (key === 'expertise' || key === 'languages') {
+          formDataToSend.append(key, JSON.stringify(formData[key]));
+        } else {
+          formDataToSend.append(key, formData[key]);
+        }
       });
+
+      await api.post('/api/auth/register', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      toast.success('Registration successful!');
+      navigate('/admin/dashboard');
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed');
       toast.error(error.response?.data?.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-gray-900">
+          <h2 className="text-4xl font-extrabold text-gray-900 mb-2">
             Register New Staff
           </h2>
+          <p className="text-gray-600">Fill in the details to create a new staff account</p>
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6" role="alert">
+            <p className="font-medium">Error</p>
+            <p>{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow-md rounded px-8 pt-6 pb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
+        <form onSubmit={handleSubmit} className="space-y-8 bg-white shadow-xl rounded-lg px-8 pt-8 pb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
                 First Name
               </label>
               <input
                 type="text"
                 name="firstName"
                 required
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  touched.firstName && !formData.firstName ? 'border-red-500' : 'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
                 value={formData.firstName}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter first name"
               />
+              {touched.firstName && !formData.firstName && (
+                <p className="text-red-500 text-sm">First name is required</p>
+              )}
             </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
                 Last Name
               </label>
               <input
                 type="text"
                 name="lastName"
                 required
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  touched.lastName && !formData.lastName ? 'border-red-500' : 'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
                 value={formData.lastName}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter last name"
               />
+              {touched.lastName && !formData.lastName && (
+                <p className="text-red-500 text-sm">Last name is required</p>
+              )}
             </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Email
             </label>
             <input
               type="email"
               name="email"
               required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className={`w-full px-4 py-2 rounded-lg border ${
+                touched.email && !formData.email ? 'border-red-500' : 'border-gray-300'
+              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Enter email address"
             />
+            {touched.email && !formData.email && (
+              <p className="text-red-500 text-sm">Valid email is required</p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <input
               type="password"
               name="password"
               required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className={`w-full px-4 py-2 rounded-lg border ${
+                touched.password && !formData.password ? 'border-red-500' : 'border-gray-300'
+              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
               value={formData.password}
               onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Enter password"
             />
+            {touched.password && !formData.password && (
+              <p className="text-red-500 text-sm">Password is required</p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              CNIC
-            </label>
-            <input
-              type="text"
-              name="cnic"
-              required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={formData.cnic}
-              onChange={handleChange}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                CNIC
+              </label>
+              <input
+                type="text"
+                name="cnic"
+                required
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  touched.cnic && !formData.cnic ? 'border-red-500' : 'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
+                value={formData.cnic}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter CNIC"
+              />
+              {touched.cnic && !formData.cnic && (
+                <p className="text-red-500 text-sm">CNIC is required</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                name="phoneNumber"
+                required
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  touched.phoneNumber && !formData.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter phone number"
+              />
+              {touched.phoneNumber && !formData.phoneNumber && (
+                <p className="text-red-500 text-sm">Phone number is required</p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="phoneNumber"
-              required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Date of Birth
             </label>
             <input
               type="date"
               name="dateOfBirth"
               required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className={`w-full px-4 py-2 rounded-lg border ${
+                touched.dateOfBirth && !formData.dateOfBirth ? 'border-red-500' : 'border-gray-300'
+              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
               value={formData.dateOfBirth}
               onChange={handleChange}
+              onBlur={handleBlur}
             />
+            {touched.dateOfBirth && !formData.dateOfBirth && (
+              <p className="text-red-500 text-sm">Date of birth is required</p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Expertise
             </label>
             <div className="flex gap-2">
@@ -236,13 +328,14 @@ const AdminRegister = () => {
                 type="text"
                 value={expertiseInput}
                 onChange={(e) => setExpertiseInput(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="Add expertise"
+                onKeyPress={(e) => handleKeyPress(e, handleAddExpertise)}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                placeholder="Add expertise (press Enter to add)"
               />
               <button
                 type="button"
                 onClick={handleAddExpertise}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"
               >
                 Add
               </button>
@@ -251,13 +344,13 @@ const AdminRegister = () => {
               {formData.expertise.map((exp, index) => (
                 <span
                   key={index}
-                  className="bg-gray-200 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
                 >
                   {exp}
                   <button
                     type="button"
                     onClick={() => handleRemoveExpertise(index)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-blue-600 hover:text-blue-800 focus:outline-none"
                   >
                     ×
                   </button>
@@ -266,50 +359,71 @@ const AdminRegister = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Profile Picture URL
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Profile Picture
             </label>
             <input
-              type="url"
+              type="file"
               name="profilePicture"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={formData.profilePicture}
-              onChange={handleChange}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
             />
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="Profile preview"
+                className="mt-2 w-24 h-24 object-cover rounded-full"
+              />
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
                 Country
               </label>
               <input
                 type="text"
                 name="location.country"
                 required
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  touched['location.country'] && !formData.location.country ? 'border-red-500' : 'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
                 value={formData.location.country}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter country"
               />
+              {touched['location.country'] && !formData.location.country && (
+                <p className="text-red-500 text-sm">Country is required</p>
+              )}
             </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
                 City
               </label>
               <input
                 type="text"
                 name="location.city"
                 required
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  touched['location.city'] && !formData.location.city ? 'border-red-500' : 'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
                 value={formData.location.city}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter city"
               />
+              {touched['location.city'] && !formData.location.city && (
+                <p className="text-red-500 text-sm">City is required</p>
+              )}
             </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Languages
             </label>
             <div className="flex gap-2">
@@ -317,13 +431,14 @@ const AdminRegister = () => {
                 type="text"
                 value={languageInput}
                 onChange={(e) => setLanguageInput(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="Add language"
+                onKeyPress={(e) => handleKeyPress(e, handleAddLanguage)}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                placeholder="Add language (press Enter to add)"
               />
               <button
                 type="button"
                 onClick={handleAddLanguage}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"
               >
                 Add
               </button>
@@ -332,13 +447,13 @@ const AdminRegister = () => {
               {formData.languages.map((lang, index) => (
                 <span
                   key={index}
-                  className="bg-gray-200 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                  className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
                 >
                   {lang}
                   <button
                     type="button"
                     onClick={() => handleRemoveLanguage(index)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-green-600 hover:text-green-800 focus:outline-none"
                   >
                     ×
                   </button>
@@ -347,16 +462,19 @@ const AdminRegister = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Qualification
             </label>
             <select
               name="qualification"
               required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className={`w-full px-4 py-2 rounded-lg border ${
+                touched.qualification && !formData.qualification ? 'border-red-500' : 'border-gray-300'
+              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200`}
               value={formData.qualification}
               onChange={handleChange}
+              onBlur={handleBlur}
             >
               <option value="">Select qualification</option>
               <option value="PhD">PhD</option>
@@ -364,16 +482,19 @@ const AdminRegister = () => {
               <option value="Bachelors">Bachelors</option>
               <option value="Diploma">Diploma</option>
             </select>
+            {touched.qualification && !formData.qualification && (
+              <p className="text-red-500 text-sm">Qualification is required</p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Role
             </label>
             <select
               name="role"
               required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               value={formData.role}
               onChange={handleChange}
             >
@@ -385,9 +506,24 @@ const AdminRegister = () => {
           <div>
             <button
               type="submit"
-              className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              disabled={isLoading}
+              className={`w-full py-3 px-4 rounded-lg text-white font-medium ${
+                isLoading
+                  ? 'bg-blue-400 cursor-not-allowed'
+                  : 'bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+              } transition duration-200`}
             >
-              Register Staff
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                'Register Staff'
+              )}
             </button>
           </div>
         </form>
