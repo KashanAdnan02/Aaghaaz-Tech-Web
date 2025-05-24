@@ -8,7 +8,13 @@ import multer from 'multer';
 import nodemailer from 'nodemailer';
 import mongoose from 'mongoose';
 import Course from '../models/Course.mjs';
-
+import fs from 'fs';
+import path from 'path';
+const { jsPDF } = await import('jspdf');
+import dotenv from 'dotenv';
+import winston from 'winston';
+import QRCode from 'qrcode';
+dotenv.config();
 const router = express.Router();
 
 // Configure multer for memory storage
@@ -58,8 +64,32 @@ const uploadToCloudinary = async (file) => {
   }
 };
 
+// Helper function to compress image
+const compressImage = async (imageUrl) => {
+  try {
+    const response = await fetch(imageUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(arrayBuffer).toString('base64');
+
+    // Upload to Cloudinary with compression
+    const result = await cloudinary.uploader.upload(`data:image/jpeg;base64,${base64Image}`, {
+      folder: 'compressed_images',
+      resource_type: 'image',
+      transformation: [
+        { width: 300, height: 300, crop: 'fill' },
+        { quality: 'auto:low', fetch_format: 'auto' }
+      ]
+    });
+
+    return result.secure_url;
+  } catch (error) {
+    console.error('Error compressing image:', error);
+    return imageUrl; // Return original URL if compression fails
+  }
+};
+
 // Register new student (Admin or Maintenance Office only)
-router.post('/register', adminOrMaintenance, upload.single('profilePicture'), async (req, res) => {
+router.post('/register', upload.single('profilePicture'), async (req, res) => {
   try {
     const {
       firstName,
@@ -79,7 +109,7 @@ router.post('/register', adminOrMaintenance, upload.single('profilePicture'), as
 
     // Parse address object if it's a string
     let parsedAddress = address;
-    console.log(parsedAddress);
+    // console.log(parsedAddress);
 
     if (typeof address === 'string') {
       try {
@@ -154,6 +184,12 @@ router.post('/register', adminOrMaintenance, upload.single('profilePicture'), as
       profilePictureUrl = await uploadToCloudinary(req.file);
     }
 
+    // Compress profile picture if exists
+    let compressedProfileUrl = profilePictureUrl;
+    if (profilePictureUrl) {
+      compressedProfileUrl = await compressImage(profilePictureUrl);
+    }
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -173,7 +209,7 @@ router.post('/register', adminOrMaintenance, upload.single('profilePicture'), as
       guardianPhone,
       guardianRelation,
       enrolledCourses: parsedCourses,
-      profilePicture: profilePictureUrl,
+      profilePicture: compressedProfileUrl,
       status: 'Pending'
     });
 
@@ -181,7 +217,97 @@ router.post('/register', adminOrMaintenance, upload.single('profilePicture'), as
 
     // Generate and send ID card
     try {
+      // Create PDF using jsPDF with increased width
+      const doc = new jsPDF({
+        unit: 'pt',
+        format: [400, 900],
+        orientation: 'landscape'
+      });
+
+      // Title (centered)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(32);
+      doc.setTextColor(0, 204, 204); // #00cccc
+      doc.text('Aaghaaz Tech', 450, 50, { align: 'center' });
+      doc.setFontSize(20);
+      doc.text('Student ID Card', 450, 85, { align: 'center' });
+
+      // Left section: Personal and Guardian Info
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(14);
+      let y = 140;
+      doc.text(`Name: ${student.firstName} ${student.lastName}`, 40, y);
+      y += 25;
+      doc.text(`Roll ID: ${student.rollId || 'N/A'}`, 40, y);
+      y += 25;
+      doc.text(`CNIC: ${student.cnic}`, 40, y);
+      y += 25;
+      doc.text(`Phone: ${student.phoneNumber}`, 40, y);
+      y += 35;
+      // Guardian Information heading in #00cccc
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 204, 204);
+      doc.text('Guardian Information:', 40, y);
+      y += 25;
+      // Guardian info in black
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Name: ${student.guardianName || 'N/A'}`, 40, y);
+      y += 25;
+      doc.text(`Phone: ${student.guardianPhone || 'N/A'}`, 40, y);
+
+      // Right section: Student info, Course, QR code
+      let rightY = 140;
+      const rightX = 350;
+      doc.text(`Email: ${student.email}`, rightX, rightY);
+      rightY += 25;
+      doc.text(`Gender: ${student.gender || 'N/A'}`, rightX, rightY);
+      rightY += 25;
+      doc.text(`Status: ${student.status}`, rightX, rightY);
+      rightY += 25;
+      const enrollmentDateRight = student.enrolledCourses && student.enrolledCourses[0]?.enrollmentDate ? new Date(student.enrolledCourses[0].enrollmentDate).toLocaleDateString() : 'N/A';
+      doc.text(`Enrollment Date: ${enrollmentDateRight}`, rightX, rightY);
+      rightY += 25;
+      doc.text(`Relation: ${student.guardianRelation || 'N/A'}`, rightX, rightY);
+      rightY += 25;
+      // Add Course
+      const courseName = student.enrolledCourses && student.enrolledCourses[0]?.courseId?.name ? student.enrolledCourses[0].courseId.name : 'N/A';
+      doc.text(`Course: ${courseName}`, rightX, rightY);
+
+      // Center the QR code vertically in the right section
+      const qrSectionTop = 140;
+      const qrSectionHeight = 200;
+      const qrCodeSize = 120;
+      const qrCodeY = qrSectionTop + (qrSectionHeight - qrCodeSize) / 2;
+      try {
+        const qrData = student._id && student.email ? `${student._id}|${student.email}` : 'AaghaazTech';
+        const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+          width: qrCodeSize,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        });
+        doc.addImage(qrCodeDataUrl, 'PNG', 720, qrCodeY, qrCodeSize, qrCodeSize);
+      } catch (error) {
+        console.error('Error generating QR code:', error);
+      }
+
+      // Generate PDF buffer (no compression)
+      const idCardPdfBuffer = doc.output('arraybuffer');
+
       // Configure email transporter
+      // console.log('SMTP Configuration:', {
+      //   host: process.env.SMTP_HOST,
+      //   port: process.env.SMTP_PORT,
+      //   user: process.env.SMTP_USER,
+      //   from: process.env.SMTP_FROM,
+      //   // Don't log the password for security
+      //   hasPassword: !!process.env.SMTP_PASS
+      // });
+
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT,
@@ -189,51 +315,38 @@ router.post('/register', adminOrMaintenance, upload.single('profilePicture'), as
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
-        }
+        },
+        debug: false, // Disable debug logs
+        logger: false  // Disable logger
       });
 
-      // Create PDF using jsPDF
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF('landscape');
-
-      // Add front of card
-      doc.setFontSize(20);
-      doc.text('Student ID Card', 105, 20, { align: 'center' });
-
-      // Add student details
-      doc.setFontSize(12);
-      doc.text(`Name: ${student.firstName} ${student.lastName}`, 20, 40);
-      doc.text(`Roll ID: ${student.rollId}`, 20, 50);
-      doc.text(`CNIC: ${student.cnic}`, 20, 60);
-      doc.text(`Phone: ${student.phoneNumber}`, 20, 70);
-      doc.text(`Status: ${student.status}`, 20, 80);
-
-      // Add profile picture if exists
-      if (profilePictureUrl) {
-        try {
-          const response = await fetch(profilePictureUrl);
-          const arrayBuffer = await response.arrayBuffer();
-          const base64Image = Buffer.from(arrayBuffer).toString('base64');
-          doc.addImage(`data:image/jpeg;base64,${base64Image}`, 'JPEG', 150, 30, 40, 40);
-        } catch (error) {
-          console.error('Error adding profile picture to PDF:', error);
-        }
+      // Verify SMTP connection configuration
+      try {
+        await transporter.verify();
+        // console.log('SMTP connection verified successfully');
+      } catch (error) {
+        console.error('SMTP connection verification failed:', error);
+        throw new Error(`SMTP configuration error: ${error.message}`);
       }
 
-      // Generate PDF buffer
-      const pdfBuffer = doc.output('arraybuffer');
-
-      // Send email with PDF attachment
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM,
-        to: student.email,
-        subject: 'Welcome to Aaghaaz Tech - Your Student ID Card',
-        text: `Dear ${student.firstName},\n\nWelcome to Aaghaaz Tech! Your registration has been received and is pending approval.\n\nPlease find your student ID card attached. You will need this ID card for attendance and other purposes.\n\nBest regards,\nAaghaaz Tech Team`,
-        attachments: [{
-          filename: 'student_id_card.pdf',
-          content: Buffer.from(pdfBuffer)
-        }]
-      });
+      // Send email with PDF (no compression)
+      try {
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM,
+          to: student.email,
+          subject: 'Welcome to Aaghaaz Tech - Your Student ID Card',
+          text: `Dear ${student.firstName},\n\nWelcome to Aaghaaz Tech! Your registration has been received and is pending approval.\n\nPlease find your student ID card attached. You will need this ID card for attendance and other purposes.\n\nBest regards,\nAaghaaz Tech Team`,
+          attachments: [{
+            filename: 'student_id_card.pdf',
+            content: Buffer.from(idCardPdfBuffer),
+            contentType: 'application/pdf'
+          }]
+        });
+        // console.log('Email sent successfully to:', student.email);
+      } catch (error) {
+        console.error('Error sending email:', error);
+        throw new Error(`Failed to send email: ${error.message}`);
+      }
     } catch (error) {
       console.error('Error generating/sending ID card:', error);
       // Don't fail the registration if ID card generation fails
@@ -241,7 +354,7 @@ router.post('/register', adminOrMaintenance, upload.single('profilePicture'), as
 
 
     res.status(201).json({
-      message: 'Student registered successfully. Account is pending approval.',
+      message: 'Registered successfully. You are in pending approval. so please go to the campus office to get your card and verify!',
       student: {
         id: student._id,
         firstName: student.firstName,
@@ -493,13 +606,24 @@ router.get('/course/:courseId', async (req, res) => {
   try {
     const students = await Student.find({
       'enrolledCourses.courseId': req.params.courseId,
-      'enrolledCourses.status': 'Active'
+      'enrolledCourses.status': 'Active',
+      status: 'Enrolled'
     }).select('-password');
-    
-    if (!students) {
-      return res.status(404).json({ message: 'No students found for this course' });
-    }
-    res.json(students);
+    res.json({ students });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Alias for compatibility with frontend
+router.get('/enrolled/course/:courseId', async (req, res) => {
+  try {
+    const students = await Student.find({
+      'enrolledCourses.courseId': req.params.courseId,
+      'enrolledCourses.status': 'Active',
+      status: 'Enrolled'
+    }).select('-password');
+    res.json({ students });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -678,19 +802,19 @@ router.post('/send-id-card', upload.single('pdf'), async (req, res) => {
   }
 });
 
-// Get all students with pagination, search, and filtering
+// Get all students with filters (Admin or Maintenance Office)
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || '';
-    const sortField = req.query.sortField || 'createdAt';
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
-    const filterField = req.query.filterField;
-    const filterValue = req.query.filterValue;
+    const courseId = req.query.courseId;
+    const city = req.query.city;
 
     // Build search query
     const query = {};
+    
+    // Add search conditions
     if (search) {
       query.$or = [
         { firstName: { $regex: search, $options: 'i' } },
@@ -701,9 +825,14 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    // Add filter if provided
-    if (filterField && filterValue) {
-      query[filterField] = filterValue;
+    // Add course filter
+    if (courseId) {
+      query['enrolledCourses.courseId'] = courseId;
+    }
+
+    // Add city filter
+    if (city) {
+      query['address.city'] = { $regex: city, $options: 'i' };
     }
 
     // Calculate skip value for pagination
@@ -712,18 +841,14 @@ router.get('/', async (req, res) => {
     // Get total count for pagination
     const totalRecords = await Student.countDocuments(query);
 
-    // Create sort object
-    const sortObject = {};
-    sortObject[sortField] = sortOrder;
-
-    // Fetch students with pagination, search, and sorting
+    // Fetch students with pagination and filters
     const students = await Student.find(query)
-      .sort(sortObject)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate({
         path: 'enrolledCourses.courseId',
-        select: 'name days timing modeOfDelivery duration price'
+        select: 'name days timing modeOfDelivery duration'
       })
       .select('-password'); // Exclude password from response
 
@@ -735,9 +860,7 @@ router.get('/', async (req, res) => {
       totalPages,
       currentPage: page,
       totalRecords,
-      limit,
-      sortField,
-      sortOrder: sortOrder === 1 ? 'asc' : 'desc'
+      limit
     });
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -821,5 +944,6 @@ router.get('/export/csv', async (req, res) => {
     });
   }
 });
+
 
 export default router; 

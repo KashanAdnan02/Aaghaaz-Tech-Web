@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import api from '../utils/axios';
 
-const UpdateProfile = () => {
+const UpdateProfile = ({ onSuccess }) => {
   const { user } = useSelector(state => state.auth);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -85,6 +85,7 @@ const UpdateProfile = () => {
         }
       });
       toast.success('Profile updated successfully');
+      if (onSuccess) onSuccess();
     } catch (error) {
       toast.error('Failed to update profile');
     }
@@ -92,7 +93,6 @@ const UpdateProfile = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Update Profile</h1>
       <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6">
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700">Profile Picture</label>

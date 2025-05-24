@@ -45,7 +45,7 @@ const studentSchema = new mongoose.Schema({
   },
   gender: {
     type: String,
-    enum: ['Male', 'Female', 'Other'],
+    enum: ['male', 'Female', 'female', 'other', 'Other', 'Male'],
     required: true
   },
   address: {
@@ -115,7 +115,7 @@ const studentSchema = new mongoose.Schema({
 });
 
 // Generate rollId before saving
-studentSchema.pre('save', async function(next) {
+studentSchema.pre('save', async function (next) {
   if (!this.rollId) {
     let isUnique = false;
     while (!isUnique) {

@@ -5,10 +5,7 @@ export const checkRole = (roles) => {
     try {
       const token = req.header('Authorization')?.replace('Bearer ', '');
 
-      console.log(token);
       if (!token) {
-        console.log(token);
-
         return res.status(401).json({ message: 'Authentication required' });
       }
 
@@ -20,10 +17,21 @@ export const checkRole = (roles) => {
         });
       }
 
-      req.user = decoded;
+      // Set user info consistently with auth.mjs
+      req.user = {
+        _id: decoded.userId || decoded.studentId,
+        role: decoded.role,
+        email: decoded.email
+      };
       next();
     } catch (error) {
-      res.status(401).json({ message: 'Invalid token' });
+      if (error.name === 'JsonWebTokenError') {
+        return res.status(401).json({ message: 'Invalid token' });
+      }
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired' });
+      }
+      res.status(500).json({ message: 'Internal server error' });
     }
   };
 };

@@ -4,6 +4,7 @@ const initialState = {
   user: null,
   token: null,
   isAuthenticated: false,
+  darkMode: false,
 };
 
 const authSlice = createSlice({
@@ -21,13 +22,20 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
     },
+    setDarkMode: (state, action) => {
+      state.darkMode = action.payload;
+    },
+    toggleDarkMode: (state) => {
+      state.darkMode = !state.darkMode;
+    },
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, logout, setDarkMode, toggleDarkMode } = authSlice.actions;
 export default authSlice.reducer;
 
 // Selectors
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
-export const selectUserRole = (state) => state.auth.user?.role; 
+export const selectUserRole = (state) => state.auth.user?.role;
+export const selectDarkMode = (state) => state.auth.darkMode; 

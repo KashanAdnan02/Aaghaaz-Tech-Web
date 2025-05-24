@@ -11,7 +11,8 @@ const Attendance = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [rollSearch, setRollSearch] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
 
   // Fetch courses on component mount
   useEffect(() => {
@@ -58,13 +59,13 @@ const Attendance = () => {
   }, [selectedCourse]);
 
   const handleStatusChange = (studentId, status) => {
-    setStudents(students.map(student => 
+    setStudents(students.map(student =>
       student._id === studentId ? { ...student, status } : student
     ));
   };
 
   const handleRemarksChange = (studentId, remarks) => {
-    setStudents(students.map(student => 
+    setStudents(students.map(student =>
       student._id === studentId ? { ...student, remarks } : student
     ));
   };
@@ -83,7 +84,7 @@ const Attendance = () => {
 
       await api.post('/api/attendance', {
         courseId: selectedCourse,
-        date,
+        date: format(new Date(), 'yyyy-MM-dd'),
         students: students.map(student => ({
           studentId: student._id,
           status: student.status,
@@ -144,15 +145,25 @@ const Attendance = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Date
             </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            />
+            <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
+              {format(new Date(), 'yyyy-MM-dd')}
+            </div>
           </div>
         </div>
+
+        {/* Student Search Input */}
+        {students.length > 0 && (
+          <div className="mb-4 flex items-center">
+            <label className="mr-2 text-sm font-medium text-gray-700">Search Student:</label>
+            <input
+              type="text"
+              value={studentSearch}
+              onChange={e => setStudentSearch(e.target.value)}
+              placeholder="Enter name or roll number"
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-4">
@@ -175,7 +186,17 @@ const Attendance = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {students.map(student => (
+                {(studentSearch
+                  ? students.filter(student => {
+                    const search = studentSearch.toLowerCase();
+                    return (
+                      (student.firstName && student.firstName.toLowerCase().includes(search)) ||
+                      (student.lastName && student.lastName.toLowerCase().includes(search)) ||
+                      (student.rollId && student.rollId.toLowerCase().includes(search))
+                    );
+                  })
+                  : students
+                ).map(student => (
                   <tr key={student._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">

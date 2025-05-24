@@ -6,9 +6,6 @@ import Login from './pages/Login';
 import Unauthorized from './pages/Unauthorized';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import ActiveCourses from './pages/ActiveCourses';
-import AllCourses from './pages/AllCourses';
-import CourseSessions from './pages/CourseSessions';
 import AttendanceMark from './pages/AttendanceMark';
 import AttendanceView from './pages/AttendanceView';
 import AdminRegister from './pages/AdminRegister';
@@ -65,35 +62,6 @@ const routes = [
     exact: true,
     protected: true,
     allowedRoles: ['maintenance_office', "admin"],
-  },
-  {
-    path: '/courses/active',
-    component: ActiveCourses,
-    layout: true,
-    exact: true,
-    protected: true,
-  },
-  {
-    path: '/courses/all',
-    component: AllCourses,
-    layout: true,
-    exact: true,
-    protected: true,
-  },
-  {
-    path: '/courses/sessions',
-    component: CourseSessions,
-    layout: true,
-    exact: true,
-    protected: true,
-  },
-  {
-    path: '/attendance',
-    component: Attendance,
-    layout: true,
-    exact: true,
-    protected: true,
-    allowedRoles: ['maintenance_office', 'teacher', 'admin'],
   },
   {
     path: '/attendance/mark',

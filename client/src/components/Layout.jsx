@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 
 const Layout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Initialize sidebar state based on screen size
   useEffect(() => {
     const handleResize = () => {
-      setSidebarOpen(window.innerWidth >= 1024);
+      if (window.innerWidth >= 1024) {
+        // Only open sidebar on large screens if it was previously open
+        setSidebarOpen(prev => prev);
+      } else {
+        setSidebarOpen(false);
+      }
     };
 
     // Set initial state

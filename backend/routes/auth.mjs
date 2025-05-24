@@ -331,7 +331,7 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || '121212');
     const userId = decoded.userId;
 
-    const { firstName, lastName, email, phoneNumber, location, languages, qualification, expertise, cnic } = req.body;
+    const { firstName, lastName, email, phoneNumber, location, languages, qualification, expertise, cnic, notifications, preferences } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -354,6 +354,22 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
     user.qualification = qualification || user.qualification;
     user.expertise = expertise || user.expertise;
     user.cnic = cnic || user.cnic;
+
+    // Update notifications if provided
+    if (notifications) {
+      user.notifications = {
+        ...user.notifications,
+        ...notifications
+      };
+    }
+
+    // Update preferences if provided
+    if (preferences) {
+      user.preferences = {
+        ...user.preferences,
+        ...preferences
+      };
+    }
 
     await user.save();
 

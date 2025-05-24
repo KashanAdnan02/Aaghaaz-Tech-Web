@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { userSettingsService } from '../services/userSettingsService';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { setDarkMode, selectDarkMode } from '../store/slices/authSlice';
 
 const Settings = () => {
-  const [notifications, setNotifications] = useState(true);
+  const [notifications, setNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [emailUpdates, setEmailUpdates] = useState(true);
+  const [emailUpdates, setEmailUpdates] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
@@ -23,6 +26,42 @@ const Settings = () => {
   console.log(twoFactorData);
   
   const [deletePassword, setDeletePassword] = useState('');
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const reduxDarkMode = useSelector(selectDarkMode);
+
+  useEffect(() => {
+    // Fetch user preferences from backend on mount
+    const fetchPreferences = async () => {
+      try {
+        const res = await userSettingsService.getProfile();
+        if (res.user) {
+          setNotifications(res.user.notifications?.system ?? false);
+          setEmailUpdates(res.user.notifications?.email ?? false);
+          setDarkMode(res.user.preferences?.darkMode ?? false);
+        }
+      } catch (e) {}
+    };
+    fetchPreferences();
+  }, []);
+
+  useEffect(() => {
+    // Apply dark mode to body
+    if (reduxDarkMode) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+  }, [reduxDarkMode]);
+
+  const savePreferences = async (newPrefs) => {
+    try {
+      await userSettingsService.updateProfile(newPrefs);
+      toast.success('Preferences updated');
+    } catch (e) {
+      toast.error('Failed to update preferences');
+    }
+  };
 
   const handleProfileUpdate = async () => {
     try {
@@ -124,6 +163,12 @@ const Settings = () => {
               <h3 className="font-medium">User Profile</h3>
               <p className="text-sm text-gray-500">Update your personal information</p>
             </div>
+            <button
+              className="px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+              onClick={() => navigate('/profile/update')}
+            >
+              Edit Profile
+            </button>
           </div>
 
           <div className="py-4 flex items-center justify-between">
@@ -170,7 +215,10 @@ const Settings = () => {
                 id="toggle-notifications"
                 className="sr-only"
                 checked={notifications}
-                onChange={() => setNotifications(!notifications)}
+                onChange={() => {
+                  setNotifications(!notifications);
+                  savePreferences({ notifications: { system: !notifications } });
+                }}
               />
               <label
                 htmlFor="toggle-notifications"
@@ -193,15 +241,19 @@ const Settings = () => {
                 type="checkbox"
                 id="toggle-dark"
                 className="sr-only"
-                checked={darkMode}
-                onChange={() => setDarkMode(!darkMode)}
+                checked={reduxDarkMode}
+                onChange={() => {
+                  dispatch(setDarkMode(!reduxDarkMode));
+                  setDarkMode(!reduxDarkMode);
+                  savePreferences({ preferences: { darkMode: !reduxDarkMode } });
+                }}
               />
               <label
                 htmlFor="toggle-dark"
-                className={`block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer ${darkMode ? 'bg-blue-500' : 'bg-gray-300'}`}
+                className={`block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer ${reduxDarkMode ? 'bg-blue-500' : 'bg-gray-300'}`}
               >
                 <span
-                  className={`block h-6 w-6 rounded-full bg-white transform transition-transform duration-200 ease-in-out ${darkMode ? 'translate-x-6' : 'translate-x-0'}`}
+                  className={`block h-6 w-6 rounded-full bg-white transform transition-transform duration-200 ease-in-out ${reduxDarkMode ? 'translate-x-6' : 'translate-x-0'}`}
                 ></span>
               </label>
             </div>
@@ -218,7 +270,10 @@ const Settings = () => {
                 id="toggle-email"
                 className="sr-only"
                 checked={emailUpdates}
-                onChange={() => setEmailUpdates(!emailUpdates)}
+                onChange={() => {
+                  setEmailUpdates(!emailUpdates);
+                  savePreferences({ notifications: { email: !emailUpdates } });
+                }}
               />
               <label
                 htmlFor="toggle-email"

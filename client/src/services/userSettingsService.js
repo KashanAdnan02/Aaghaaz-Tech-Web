@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://aaghaaz-tech-server.vercel.app/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -79,6 +79,16 @@ export const userSettingsService = {
   deleteAccount: async (password) => {
     try {
       const response = await api.delete('/auth/account', { data: { password } });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get user profile
+  getProfile: async () => {
+    try {
+      const response = await api.get('/auth/profile');
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

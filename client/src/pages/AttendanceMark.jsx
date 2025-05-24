@@ -10,6 +10,7 @@ const AttendanceMark = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [searchRollNo, setSearchRollNo] = useState('');
 
     // Fetch courses on component mount
     useEffect(() => {
@@ -103,6 +104,11 @@ const AttendanceMark = () => {
         }
     };
 
+    // Filter students based on search roll number
+    const filteredStudents = students.filter(student =>
+        student.rollId.toLowerCase().includes(searchRollNo.toLowerCase())
+    );
+
     return (
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-2xl font-bold mb-6">Mark Attendance</h1>
@@ -120,7 +126,7 @@ const AttendanceMark = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Select Course
@@ -152,13 +158,26 @@ const AttendanceMark = () => {
                             required
                         />
                     </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Search by Roll No
+                        </label>
+                        <input
+                            type="text"
+                            value={searchRollNo}
+                            onChange={(e) => setSearchRollNo(e.target.value)}
+                            placeholder="Enter roll number..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
                 </div>
 
                 {loading ? (
                     <div className="text-center py-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto"></div>
                     </div>
-                ) : students.length > 0 ? (
+                ) : filteredStudents.length > 0 ? (
                     <div className="bg-white shadow-md rounded-lg overflow-hidden">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
@@ -175,11 +194,11 @@ const AttendanceMark = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {students.map(student => (
+                                {filteredStudents.map(student => (
                                     <tr key={student._id}>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
-                                                {student.firstName} {student.lastName}
+                                                  {student.firstName} {student.lastName}
                                             </div>
                                             <div className="text-sm text-gray-500">
                                                 {student.rollId}

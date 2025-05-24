@@ -47,6 +47,7 @@ router.post('/', maintenanceOfficeOnly, async (req, res) => {
     });
   }
 });
+
 router.delete('/:id', maintenanceOfficeOnly, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -94,19 +95,27 @@ router.get('/count', async (req, res) => {
 // Get all courses (Public)
 router.get('/', async (req, res) => {
   try {
-    // Pagination support
+    // If no query params, return all courses as an array
+    if (Object.keys(req.query).length === 0) {
+      const courses = await Course.find({ isActive: true }).lean();
+      return res.json(courses);
+    }
+
+    // Otherwise, use pagination/filtering
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const query = { isActive: true };
+    if (req.query.search) query.name = { $regex: req.query.search, $options: 'i' };
+    if (req.query.mode) query.modeOfDelivery = req.query.mode;
 
-    // Only select fields needed for the table
-    const courses = await Course.find({ isActive: true })
+    const courses = await Course.find(query)
       .select('name description days timing duration price modeOfDelivery startingDate outline requirements poster')
       .skip(skip)
       .limit(limit)
       .lean();
 
-    const total = await Course.countDocuments({ isActive: true });
+    const total = await Course.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
     res.json({
