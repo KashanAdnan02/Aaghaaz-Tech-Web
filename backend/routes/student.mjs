@@ -15,7 +15,7 @@ import dotenv from 'dotenv';
 import winston from 'winston';
 import QRCode from 'qrcode';
 dotenv.config();
-const router = express.Router();
+const   router = express.Router();
 
 // Configure multer for memory storage
 const upload = multer({ storage: multer.memoryStorage() });

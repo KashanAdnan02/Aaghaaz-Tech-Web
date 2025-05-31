@@ -110,10 +110,10 @@ const Students = () => {
             console.log('Fetching students with params:', params);
 
             const response = await api.get('/api/students', { params });
-            
+
             // Log the response for debugging
             console.log('Students response:', response.data);
-            
+
             setStudents(response.data.students);
             setTotalPages(response.data.totalPages);
         } catch (error) {

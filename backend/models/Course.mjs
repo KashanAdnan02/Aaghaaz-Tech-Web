@@ -63,7 +63,7 @@ const courseSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    // required: true
   },
   isActive: {
     type: Boolean,

@@ -16,7 +16,7 @@ dotenv.config();
 
 // IMPORTANT: Required environment variables for proper functioning:
 // - CLOUDINARY_CLOUD_NAME: Your Cloudinary cloud name
-// - CLOUDINARY_API_KEY: Your Cloudinary API key
+// - CLOUDINARY_API_KEY:  Your Cloudinary API key
 // - CLOUDINARY_API_SECRET: Your Cloudinary API secret
 // Make sure these are set in your .env file to avoid upload timeouts
 
